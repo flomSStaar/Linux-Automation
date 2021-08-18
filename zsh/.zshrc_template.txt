@@ -1,0 +1,25 @@
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+source ~/.config/antigen/antigen.zsh
+antigen use oh-my-zsh
+antigen bundle zsh-users/zsh-autosuggestions
+antigen bundle zsh-users/zsh-syntax-highlighting
+antigen bundle git
+antigen bundle heroku
+antigen bundle pip
+antigen bundle lein
+antigen bundle command-not-found
+antigen theme romkatv/powerlevel10k
+antigen apply
+
+alias cls=clear
+alias exit="exit 0"
+alias goraspi="ssh flo@raspi -p 1907"
+
+PATH="$PATH:."
+
+unset HISTFILE
+
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

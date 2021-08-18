@@ -1,0 +1,12 @@
+build-essential
+curl
+git
+gnupg
+htop
+lsb-release
+nmap
+rsync
+ssh
+ufw
+vim
+wget
