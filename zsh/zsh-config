@@ -3,10 +3,22 @@
 #====================================================
 #=====================Functions======================
 #Usage: zsh-error <error>
-zsh_error() { echo -e "\033[31m$(basename $0): $1\033[0m" >&2 ; }
-zsh_debug() { [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1 => ${@:2}\033[0m" ; }
-zsh_mdebug() { [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1\033[0m" ; }
-zsh_verbose() { echo -e "\033[35m$@\033[0m" ; }
+zsh_error() {
+    echo -e "\033[31m$(basename $0): $1\033[0m" >&2
+    return 0
+}
+zsh_debug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1 => ${@:2}\033[0m"
+    return 0
+}
+zsh_mdebug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1\033[0m"
+    return 0
+}
+zsh_verbose() {
+    echo -e "\033[35m$@\033[0m"
+    return 0
+}
 
 start_message() {
     echo "Starting the installation of zsh..."
@@ -19,43 +31,91 @@ end_message() {
 
 #Usage: install_packages [-q|--quiet]
 install_zsh_packages() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
     local quiet=''
+    local verbose=''
+
     while [[ $# -ne 0 ]]; do
         case "$1" in
         -q | --quiet)
-            quiet='q'
+            quiet='&> /dev/null'
+            ;;
+        -v | --verbose)
+            verbose='-q'
             ;;
         esac
         shift
     done
+
+    [[ -n $verbose ]] && zsh_verbose "Checking the necessary packages"
     for i in build-essential command-not-found curl git gnupg lsb-release zsh; do
         if [[ -z $(dpkg -l $i | grep 'ii') ]]; then
-            sudo apt-get install $i "-y$quiet"
+            [[ -n $verbose ]] && zsh_verbose "Installing the '$i' package"
+            sudo apt-get install "$i" -y &>/dev/null
+            if [[ $? -ne 0 ]]; then
+                zsh_error "can't install the '$i' package"
+                return 1
+            fi
         fi
     done
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
 }
 
 #Usage: fetch_antigen [-q|--quiet] [-v|--verbose]
 fetch_antigen() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
     local quiet=''
     local verbose=''
+
     while [[ $# -ne 0 ]]; do
         case "$1" in
         -q | --quiet)
-            quiet='s'
+            quiet='&> /dev/null'
             ;;
         -v | --verbose)
-            verbose='v'
+            verbose='-v'
             ;;
         esac
         shift
     done
-    [[ -n "$verbose" ]] && quiet=''
 
+    local sourcefile="git.io/antigen"
     local destpath="$HOME/.config/antigen"
     local destfile="$destpath/antigen.zsh"
-    mkdir "-p$verbose" "$destpath"
-    [[ ! -e "$destfile" ]] && curl "-L$quiet" git.io/antigen >"$destfile"
+
+    if [[ ! -e "$destfile" ]]; then
+        (mkdir -p "$destpath" && [[ -n $verbose ]] && zsh_verbose "Created directory '$destpath'") 2>/dev/null
+        if [[ $? -ne 0 ]]; then
+            zsh_error "can't create directory $destpath"
+            zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+            return 1
+        fi
+
+        zsh_mdebug "Fetching antigen file to '$destfile'"
+        [[ -n $verbose ]] && zsh_verbose "Fetching antigen file to '$destfile'"
+
+        curl -Ls "$sourcefile" -o "$destfile" &>/dev/null
+        if [[ $? -ne 0 ]]; then
+            zsh_error "can't retrieving file from '$sourcefile'"
+            zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+            return 1
+        fi
+
+        zsh_mdebug "Antigen file '$destfile' fetching complete"
+        [[ -n $verbose ]] && zsh_verbose "Antigen file '$destfile' fetching complete"
+    else
+        zsh_mdebug "The antigen file '$destfile' already exists"
+        [[ -n $verbose ]] && zsh_verbose "The antigen file '$destfile' already exists"
+    fi
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
 }
 
 #Usage: create_zshrc_file [-q|--quiet] [-o|--override] [[-i|--input-file] file]
@@ -81,7 +141,7 @@ create_zshrc_file() {
     done
 
     if [[ ! -e "$filelocation" ]]; then
-        [[ $quiet -eq 0 ]] && error "Source file \"$filelocation\" does not exist"
+        [[ $quiet -eq 0 ]] && error "Source file '$filelocation' does not exist"
         return 1
     fi
 
@@ -89,6 +149,8 @@ create_zshrc_file() {
     # => Si existe et override = 0 ==> rien
     # => Si existe pas ==> cp
     ([[ -e "$destination" ]] && [[ $override -eq 0 ]]) || cp "$filelocation" "$destination"
+
+    return 0
 }
 
 #==================
@@ -101,7 +163,7 @@ copy_p10k() {
     [[ $(id -u) = 0 ]] && filelocation='zsh/.p10kroot.zsh' || filelocation='zsh/.p10kflo.zsh'
 
     if [[ ! -e "$filelocation" ]]; then
-        echo "copy_p10k: Source file \"$filelocation\" does not exist" >&2
+        echo "copy_p10k: Source file '$filelocation' does not exist" >&2
         return 1
     elif ! cp -n "$filelocation" "$destination" 2>/dev/null; then
         echo "copy_p10k: Parameter file copy error" >&2
@@ -143,9 +205,9 @@ change_shell_to_zsh() {
         [[ $quiet -eq 0 ]] && echo "The current shell is already zsh for $user"
     else
         local previousshell=$(grep -w "$user" /etc/passwd | cut -d ':' -f 7 | rev | cut -d '/' -f 1 | rev)
-        [[ $quiet -eq 0 ]] && echo "Shell change in progress from $previousshell to zsh for \"$user\""
-        chsh -s /usr/bin/zsh $user
-        [[ $quiet -eq 0 ]] && echo "Change made for \"$user\""
+        [[ $quiet -eq 0 ]] && echo "Shell change in progress from $previousshell to zsh for '$user'"
+        chsh -s /bin/zsh $user
+        [[ $quiet -eq 0 ]] && echo "Change made for '$user'"
     fi
     return 0
 }
@@ -154,16 +216,16 @@ change_shell_to_zsh() {
 #====================================================
 #===================Main Functions===================
 init() {
-    zsh_mdebug "Enter in init function"
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
     zsh_debug 'Input args($@)' $@
     while [[ $# -ne 0 ]]; do
         case "$1" in
         -q | --quiet)
-            quiet='&> /dev/null'
+            quiet='-q'
             zsh_mdebug "Quiet mode enabled"
             ;;
         -v | --verbose)
-            verbose=1
+            verbose='-v'
             zsh_mdebug "Verbose mode enabled"
             ;;
         --debug)
@@ -173,10 +235,25 @@ init() {
         shift
     done
 
-    [[ $verbose -eq 1 ]] && zsh_verbose "Starting zsh init"
-    eval install_zsh_packages "$quiet"
-    [[ $verbose -eq 1 ]] && zsh_verbose "Zsh init complete"
-    zsh_mdebug "Exiting init function"
+    [[ -n $verbose ]] && zsh_verbose "Starting $(basename $0) ${FUNCNAME[0]}"
+
+    eval install_zsh_packages "$quiet" "$verbose"
+    if [[ $? -ne 0 ]]; then
+        zsh_error "An error occurred while installing the packages"
+        zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+        return 1
+    fi
+
+    eval fetch_antigen "$quiet" "$verbose"
+    if [[ $? -ne 0 ]]; then
+        zsh_error "An error occurred while retrieving the antigen file"
+        zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+        return 1
+    fi
+
+    [[ -n $verbose ]] && zsh_verbose "Ending $(basename $0) ${FUNCNAME[0]}"
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
 }
 
 apply() {
@@ -194,9 +271,11 @@ apply() {
         esac
         shift
     done
+
+    return 0
 }
 
-clean() {
+reset() {
     while [[ $# -ne 0 ]]; do
         case "$1" in
         -q | --quiet)
@@ -211,6 +290,13 @@ clean() {
         esac
         shift
     done
+
+    rm -rf "~/.config/antigen"
+    sudo apt-get remove build-essential command-not-found curl git gnupg lsb-release zsh -y &> /dev/null
+    #rm ~/.p10k.zsh
+    #chsh -s /bin/bash
+
+    return 0
 }
 
 info() {
@@ -228,9 +314,11 @@ info() {
         esac
         shift
     done
+
+    return 0
 }
 
-full-install() {
+full() {
     while [[ $# -ne 0 ]]; do
         case "$1" in
         -q | --quiet)
@@ -245,30 +333,41 @@ full-install() {
         esac
         shift
     done
+
+    return 0
 }
 
 #====================================================
 
 #Usage: zsh-config
 
-#clean
+#reset
 #init
 #apply
 #info
 main() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+
     local args=''
+
+    #Sets the current directory to the location of the script
+    cd $(dirname "$0")
+    scriptpath=$(pwd)
+
     debug=0
+
     for arg in $@; do
-        if echo "$arg" |grep -qe '--debug'; then
+        if echo "$arg" | grep -qe '--debug'; then
             debug=1
-        elif [[ -z $command ]]; then command="$arg"
+        elif [[ -z $command ]]; then
+            command="$arg"
         else
             args="$args $arg"
         fi
     done
     zsh_debug 'Input args($@)' $@
     zsh_debug "Command" $command
-    zsh_debug "Command args" "\"$args\""
+    zsh_debug "Command args" "'$args'"
 
     case "$command" in
     init)
@@ -277,20 +376,26 @@ main() {
     apply)
         apply $args
         ;;
-    clean)
-        clean $args
+    reset)
+        reset $args
         ;;
     info)
         info $args
         ;;
-    full-install)
-        full-install $args
+    full)
+        full $args
+        ;;
+    '')
+        zsh_error "Please enter a command"
+        exit 1
         ;;
     *)
         zsh_error "Unknown command $command"
         exit 1
         ;;
     esac
+
+    return 0
 }
 
 main $*
