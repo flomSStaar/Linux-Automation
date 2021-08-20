@@ -1,0 +1,289 @@
+#====================================================
+#=====================Functions======================
+#Usage: zsh-error <error>
+zsh_error() {
+    echo -e "\033[31m$(basename $0): $1\033[0m" >&2
+    return 1
+}
+zsh_debug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1 => ${@:2}\033[0m"
+    return 0
+}
+zsh_mdebug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1\033[0m"
+    return 0
+}
+zsh_verbose() {
+    echo -e "\033[35m$@\033[0m"
+    return 0
+}
+
+start_message() {
+    echo "Starting the installation of zsh..."
+}
+
+end_message() {
+    echo "Zsh installation complete !"
+    echo "You need to restart your terminal to finish the configuration"
+}
+
+#Usage: install_packages [-q|--quiet]
+install_zsh_packages() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
+    local quiet=''
+    local verbose=''
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet='&> /dev/null'
+            ;;
+        -v | --verbose)
+            verbose='-v'
+            ;;
+        esac
+        shift
+    done
+
+    [[ -n $verbose ]] && zsh_verbose "Installing the necessary packages"
+    sudo apt-get install build-essential command-not-found curl git gnupg lsb-release zsh -y &>/dev/null
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+
+#Usage: fetch_antigen [-q|--quiet] [-v|--verbose]
+fetch_antigen() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
+    local quiet=''
+    local verbose=''
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet='&> /dev/null'
+            ;;
+        -v | --verbose)
+            verbose='-v'
+            ;;
+        esac
+        shift
+    done
+
+    local sourcefile="git.io/antigen"
+    local destpath="$HOME/.config/antigen"
+    local destfile="$destpath/antigen.zsh"
+
+    if [[ ! -e "$destfile" ]]; then
+        (mkdir -p "$destpath" && [[ -n $verbose ]] && zsh_verbose "Created directory '$destpath'") 2>/dev/null
+        if [[ $? -ne 0 ]]; then
+            zsh_error "can't create directory $destpath"
+            zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+            return 1
+        fi
+
+        zsh_mdebug "Fetching antigen file to '$destfile'"
+        [[ -n $verbose ]] && zsh_verbose "Fetching antigen file to '$destfile'"
+
+        curl -Ls "$sourcefile" -o "$destfile" &>/dev/null
+        if [[ $? -ne 0 ]]; then
+            zsh_error "can't retrieving file from '$sourcefile'"
+            zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+            return 1
+        fi
+
+        zsh_mdebug "Antigen file '$destfile' fetching complete"
+        [[ -n $verbose ]] && zsh_verbose "Antigen file '$destfile' fetching complete"
+    else
+        zsh_mdebug "The antigen file '$destfile' already exists"
+        [[ -n $verbose ]] && zsh_verbose "The antigen file '$destfile' already exists"
+    fi
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+
+#Usage: create_zshrc_file [-q|--quiet] [-v|--verbose] [-o|--override] [[-i|--input-file] file]
+create_zshrc_file() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
+    local quiet=0
+    local override=0
+    local filelocation="$(pwd)/.zshrc_template.txt"
+    local destination="$HOME/.zshrc"
+    local verbose=''
+    # local user=''
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet=1
+            zsh_mdebug "Quiet mode enabled"
+            ;;
+        -v | --verbose)
+            verbose='-v'
+            zsh_mdebug "Verbose mode enabled"
+            ;;
+        -o | --override)
+            override=1
+            zsh_mdebug "Override mode enabled"
+            ;;
+        -i | --input-file)
+            filelocation="$2"
+            zsh_debug "set input file location to" "$filelocation"
+            shift
+            ;;
+            # *)
+            #     if getent passwd "$1" &>/dev/null; then
+            #         if [[ -z "$user" ]]; then
+            #             user="$1"
+            #             zsh_debug "set user to" "$user"
+            #         else
+            #             zsh_error "ambiguous parameter 'user' => '$user' & '$1'"
+            #             return 1
+            #         fi
+            #     else
+            #         zsh_error "Unknown argument: '$1'"
+            #     fi
+            #     ;;
+        esac
+        shift
+    done
+
+    # if [[ -z "$user" ]]; then user=$USER; fi
+
+    if [[ ! -e "$filelocation" ]]; then
+        zsh_mdebug "Source file '$filelocation' does not exist"
+        if [[ $quiet -eq 0 ]]; then
+            zsh_error "Source file '$filelocation' does not exist"
+        fi
+        return 1
+    fi
+
+    # => Si existe et override = 1 ==> cp
+    # => Si existe et override = 0 ==> rien
+    # => Si existe pas ==> cp
+    if [[ ! -e "$destination" ]] || ([[ -e "$destination" ]] && [[ $override -eq 1 ]]); then
+
+        cp "$filelocation" "$destination"
+        [[ $? -ne 0 ]] && zsh_error "error while copying file '$filelocation' to '$destination'" && return 1
+
+        if [[ $override -eq 1 ]]; then
+            zsh_mdebug "overriding file from '$filelocation' to  '$destination'"
+            [[ -n $verbose ]] && zsh_verbose "overriding file from '$filelocation' to '$destination'"
+        else
+            zsh_mdebug "copying file from '$filelocation' to  '$destination'"
+            [[ -n $verbose ]] && zsh_verbose "copying file from '$filelocation' to  '$destination'"
+        fi
+    else
+        zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
+    fi
+    #([[ -e "$destination" ]] && [[ $override -eq 0 ]]) || cp "$filelocation" "$destination" || return 1
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+
+#==================
+#Copy settings based on user
+#==================
+copy_p10k() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
+    local filelocation="$executiondirectory/zsh/"
+    local destination="$HOME/.p10k.zsh"
+    local verbose=''
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet='-q'
+            zsh_mdebug "quiet mode enabled"
+            ;;
+        -v | --verbose)
+            verbose='-v'
+            zsh_mdebug "verbose mode enabled"
+            ;;
+        esac
+        shift
+    done
+
+    #Choose the file based on user
+    [[ $(id -u) = 0 ]] && filelocation='.p10kroot.zsh' || filelocation='.p10kflo.zsh'
+
+    if [[ ! -e "$filelocation" ]]; then
+        zsh_error "Source file '$filelocation' does not exist"
+        return 1
+    elif ! cp -n "$filelocation" "$destination" 2>/dev/null; then
+        zsh_error "Parameter file copy error"
+        return 1
+    else
+        zsh_mdebug "Copying .p10k.zsh from $filelocation to $destination"
+        [[ -n $verbose ]] && zsh_verbose "Copying .p10k.zsh from $filelocation to $destination"
+    fi
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+
+#Usage: change_shell_to_zsh [-q|--quiet] [[-u|--user] user]
+change_shell_to_zsh() {
+    zsh_mdebug "Enter in ${FUNCNAME[0]} function"
+    zsh_debug 'Input args($@)' $@
+
+    local quiet=0
+    local user=$USER
+    local verbose=''
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet=1
+            zsh_mdebug "quiet mode enabled"
+            ;;
+        -v | --verbose)
+            verbose='-v'
+            zsh_mdebug "verbose mode enabled"
+            ;;
+        -u | --user)
+            if getent passwd "$2" >/dev/null 2>&1; then
+                user="$2"
+                shift
+            else
+                error "Unknown user: $2"
+                return 2
+            fi
+            ;;
+        esac
+        shift
+    done
+
+    #Check if zsh is installed
+    if ! dpkg -l zsh | grep -wq ii; then
+        zsh_error 'You can''t change your shell to zsh because it is not installed !'
+        zsh_error 'If you want to install it, execute "sudo apt install zsh"'
+        return 1
+    fi
+
+    if grep -w "$user" /etc/passwd | cut -d ':' -f 7 | grep -wq '/usr/bin/zsh'; then
+        zsh_mdebug "The current shell is already zsh for $user"
+        [[ -n $verbose ]] && zsh_verbose "The current shell is already zsh for $user"
+    else
+        local previousshell=$(grep -w "$user" /etc/passwd | cut -d ':' -f 7 | rev | cut -d '/' -f 1 | rev)
+        [[ -n $verbose ]] && zsh_verbose "Shell change in progress from $previousshell to zsh for '$user'"
+        zsh_mdebug "Shell change in progress from $previousshell to zsh for '$user'"
+        chsh -s /bin/zsh $user
+        [[ -n $verbose ]] && zsh_verbose "Change made for '$user'"
+        zsh_mdebug "Change made for '$user'"
+    fi
+
+    zsh_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+#====================================================

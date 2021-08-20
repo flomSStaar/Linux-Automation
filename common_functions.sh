@@ -44,7 +44,7 @@ install_packages_from_file() {
 
     if [[ -r "$packagesfile" ]]; then
         [[ -z "$quiet" ]] && echo "Starting the installation of packages from $packagesfile"
-        sudo xargs -a "$packagesfile" apt-get install "-y$quiet"
+        sudo xargs -a "$packagesfile" apt-get install "-yqq"
         [[ -z "$quiet" ]] && echo "Package installation complete from $packagesfile"
     else
         [[ -z "$quiet" ]] && error "The packages file \"$packagesfile\" is missing!"
