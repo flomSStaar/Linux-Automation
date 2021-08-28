@@ -111,7 +111,7 @@ create_zshrc_file() {
 
     local quiet=0
     local override=0
-    local zshrc='
+    local zshrctemplate='
     if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
     fi
@@ -197,7 +197,7 @@ create_zshrc_file() {
         if [[ $override -eq 1 ]]; then
             zsh_mdebug "creating file ~/.zshrc with default configuration"
             [[ -n $verbose ]] && zsh_verbose "creating file '~/.zshrc' with default configuration"
-            echo "$zshrc" >~/.zshrc
+            echo "$zshrctemplate" >~/.zshrc
         fi
     fi
 
