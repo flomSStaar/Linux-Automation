@@ -111,7 +111,6 @@ create_zshrc_file() {
 
     local quiet=0
     local override=0
-    local filelocation="$(pwd)/.zshrc_template.txt"
     local zshrc='
     if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
@@ -167,34 +166,40 @@ create_zshrc_file() {
     done
 
     # if [[ -z "$user" ]]; then user=$USER; fi
-
-    if [[ ! -e "$filelocation" ]]; then
-        zsh_mdebug "Source file '$filelocation' does not exist"
-        if [[ $quiet -eq 0 ]]; then
-            zsh_error "Source file '$filelocation' does not exist"
+    if [[ -n "$filelocation" ]]; then
+        if [[ ! -e "$filelocation" ]]; then
+            zsh_mdebug "Source file '$filelocation' does not exist"
+            if [[ $quiet -eq 0 ]]; then
+                zsh_error "Source file '$filelocation' does not exist"
+            fi
+            return 1
         fi
-        return 1
-    fi
 
-    # => Si existe et override = 1 ==> cp
-    # => Si existe et override = 0 ==> rien
-    # => Si existe pas ==> cp
-    if [[ ! -e "$destination" ]] || ([[ -e "$destination" ]] && [[ $override -eq 1 ]]); then
+        # => Si existe et override = 1 ==> cp
+        # => Si existe et override = 0 ==> rien
+        # => Si existe pas ==> cp
+        if [[ ! -e "$destination" ]] || ([[ -e "$destination" ]] && [[ $override -eq 1 ]]); then
 
-        cp "$filelocation" "$destination"
-        [[ $? -ne 0 ]] && zsh_error "error while copying file '$filelocation' to '$destination'" && return 1
+            cp "$filelocation" "$destination"
+            [[ $? -ne 0 ]] && zsh_error "error while copying file '$filelocation' to '$destination'" && return 1
 
-        if [[ $override -eq 1 ]]; then
-            zsh_mdebug "overriding file from '$filelocation' to  '$destination'"
-            [[ -n $verbose ]] && zsh_verbose "overriding file from '$filelocation' to '$destination'"
+            if [[ $override -eq 1 ]]; then
+                zsh_mdebug "overriding file from '$filelocation' to  '$destination'"
+                [[ -n $verbose ]] && zsh_verbose "overriding file from '$filelocation' to '$destination'"
+            else
+                zsh_mdebug "copying file from '$filelocation' to  '$destination'"
+                [[ -n $verbose ]] && zsh_verbose "copying file from '$filelocation' to  '$destination'"
+            fi
         else
-            zsh_mdebug "copying file from '$filelocation' to  '$destination'"
-            [[ -n $verbose ]] && zsh_verbose "copying file from '$filelocation' to  '$destination'"
+            zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
         fi
     else
-        zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
+        if [[ $override -eq 1 ]]; then
+            zsh_mdebug "creating file ~/.zshrc with default configuration"
+            [[ -n $verbose ]] && zsh_verbose "creating file '~/.zshrc' with default configuration"
+            echo "$zshrc" >~/.zshrc
+        fi
     fi
-    #([[ -e "$destination" ]] && [[ $override -eq 0 ]]) || cp "$filelocation" "$destination" || return 1
 
     zsh_mdebug "Exiting ${FUNCNAME[0]} function"
     return 0
@@ -235,8 +240,8 @@ copy_p10k() {
         zsh_error "Parameter file copy error"
         return 1
     else
-        zsh_mdebug "Copying .p10k.zsh from $filelocation to $destination"
-        [[ -n $verbose ]] && zsh_verbose "Copying .p10k.zsh from $filelocation to $destination"
+        zsh_mdebug "copying .p10k.zsh from $filelocation to $destination"
+        [[ -n $verbose ]] && zsh_verbose "copying .p10k.zsh from $filelocation to $destination"
     fi
 
     zsh_mdebug "Exiting ${FUNCNAME[0]} function"
@@ -302,6 +307,15 @@ change_shell_to_zsh() {
 #====================================================
 #===================Main Functions===================
 init() {
+    init_usage() {
+        cat <<EOF
+Usage: zsh-config init [args]
+  -q, --quiet:              Quiet mode.
+  -v, --verbose:            Verbose mode.
+  -h, --help                Display this information.
+EOF
+    }
+
     zsh_mdebug "Enter in ${FUNCNAME[0]} function"
     zsh_debug 'Input args($@)' $@
     while [[ $# -ne 0 ]]; do
@@ -313,6 +327,15 @@ init() {
         -v | --verbose)
             verbose='-v'
             zsh_mdebug "Verbose mode enabled"
+            ;;
+        -h | --help)
+            init_usage
+            return 0
+            ;;
+        *)
+            zsh_error "Unknown argument '$1'"
+            init_usage
+            return 1
             ;;
         esac
         shift
@@ -340,6 +363,19 @@ init() {
 }
 
 apply() {
+    apply_usage() {
+        cat <<EOF
+Usage: zsh-config apply [args]
+  -q, --quiet               Quiet mode.
+  -v, --verbose             Verbose mode.
+  -o, --override            Override mode, if this option is specified, 
+                            the .zshrc file if it exists, will be overwritten.
+  -t <file>,                Specify the template file to apply to .zshrc.
+    --template <file>
+  -h, --help                Display this information.
+EOF
+    }
+
     zsh_mdebug "Enter in ${FUNCNAME[0]} function"
     zsh_debug 'Input args($@)' $@
 
@@ -371,24 +407,18 @@ apply() {
         -o | --override)
             override='-o'
             ;;
-            # *)
-            #     if getent passwd "$1" &>/dev/null; then
-            #         if [[ -z "$user" ]]; then
-            #             user="$1"
-            #             zsh_debug "set user to" "$user"
-            #         else
-            #             zsh_error "ambiguous parameter 'user' => '$user' & '$1'"
-            #             return 1
-            #         fi
-            #     else
-            #         zsh_error "Unknown argument: '$1'"
-            #     fi
-            #     ;;
+        -h | --help)
+            apply_usage
+            return 0
+            ;;
+        *)
+            zsh_error "Unknown argument '$1'"
+            apply_usage
+            return 1
+            ;;
         esac
         shift
     done
-
-    # if [[ -z "$user" ]]; then user=$USER; fi
 
     [[ -n $verbose ]] && zsh_verbose "Starting $(basename $0) ${FUNCNAME[0]}"
 
@@ -413,24 +443,24 @@ reset() {
 
 help() {
     version
-
-    cat <<EOF
-This script is useful for configuring zsh automatically.
-
-Usage: zsh-config <command> [args]
-
-Commands:
-  apply        Apply configuration to the current user.
-  init         Initialize zsh-config to prepare for configuration.
-  reset        Reset settings as before running zsh-config.
-  help         Print this message.
-  version      Display zsh-config version.
-
-EOF
+    echo "This script is useful for configuring zsh automatically."
+    usage
     return 0
 }
 
 full() {
+    full_usage() {
+        cat <<EOF
+Usage: zsh-config full [args]
+  -q, --quiet               Quiet mode.
+  -v, --verbose             Verbose mode.
+  -o, --override            Override mode, if this option is specified, 
+                            the .zshrc file if it exists, will be overwritten.
+  -t <file>,                Specify the template file to apply to .zshrc.
+    --template <file>
+  -h, --help                Display this information.
+EOF
+    }
     local quiet=''
     local verbose=''
     local template=''
@@ -456,6 +486,15 @@ full() {
         -o | --override)
             override='-o'
             ;;
+        -h | --help)
+            full_usage
+            return 0
+            ;;
+        *)
+            zsh_error "Unknown argument '$1'"
+            full_usage
+            return 1
+            ;;
         esac
         shift
     done
@@ -469,6 +508,18 @@ full() {
 version() {
     local version='v1.0.0'
     echo "Zsh-config $version"
+}
+
+usage(){
+    cat <<EOF
+Usage: zsh-config <command> [args]
+  init         Initialize zsh-config to prepare for configuration.
+  apply        Apply configuration to the current user.
+  full         Full configuration of zsh-config.
+  reset        Reset settings as before running zsh-config.
+  help         Display this information.
+  version      Display zsh-config version.
+EOF
 }
 
 #====================================================
@@ -513,10 +564,12 @@ main() {
         ;;
     '')
         zsh_error "Please enter a command"
+        usage
         exit 1
         ;;
     *)
         zsh_error "Unknown command $command"
+        usage
         exit 1
         ;;
     esac
