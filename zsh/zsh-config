@@ -444,7 +444,7 @@ reset() {
 
 help() {
     version
-    echo "This script is useful for configuring zsh automatically."
+    echo -e "\nThis script is useful for configuring zsh automatically.\n"
     usage
     return 0
 }
