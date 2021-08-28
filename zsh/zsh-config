@@ -165,7 +165,6 @@ create_zshrc_file() {
         shift
     done
 
-    # if [[ -z "$user" ]]; then user=$USER; fi
     if [[ -n "$filelocation" ]]; then
         if [[ ! -e "$filelocation" ]]; then
             zsh_mdebug "Source file '$filelocation' does not exist"
@@ -194,10 +193,16 @@ create_zshrc_file() {
             zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
         fi
     else
-        if [[ $override -eq 1 ]]; then
+        if [[ ! -e "$destination" ]]; then
             zsh_mdebug "creating file ~/.zshrc with default configuration"
             [[ -n $verbose ]] && zsh_verbose "creating file '~/.zshrc' with default configuration"
             echo "$zshrctemplate" >~/.zshrc
+        elif [[ -e "$destination" ]] && [[ $override -eq 1 ]]; then
+            zsh_mdebug "overriding file ~/.zshrc with default configuration"
+            [[ -n $verbose ]] && zsh_verbose "overriding file '~/.zshrc' with default configuration"
+            echo "$zshrctemplate" >~/.zshrc
+        else
+            zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
         fi
     fi
 
@@ -208,11 +213,12 @@ create_zshrc_file() {
 #==================
 #Copy settings based on user
 #==================
-copy_p10k() {
+get_p10k() {
     zsh_mdebug "Enter in ${FUNCNAME[0]} function"
     zsh_debug 'Input args($@)' $@
 
-    local filelocation="$executiondirectory/"
+    local p10kflo=https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/.p10kflo.zsh?token=ATJZ5CLQ6YDMJX55RWHQXRLBGPVQS
+    local p10kroot=https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/.p10kroot.zsh?token=ATJZ5CJ7OOS7Q2Q5EUGB5O3BGO27O
     local destination="$HOME/.p10k.zsh"
     local verbose=''
 
@@ -231,17 +237,12 @@ copy_p10k() {
     done
 
     #Choose the file based on user
-    [[ $(id -u) = 0 ]] && filelocation+='.p10kroot.zsh' || filelocation+='.p10kflo.zsh'
-
-    if [[ ! -e "$filelocation" ]]; then
-        zsh_error "Source file '$filelocation' does not exist"
-        return 1
-    elif ! cp -n "$filelocation" "$destination" 2>/dev/null; then
-        zsh_error "Parameter file copy error"
-        return 1
+    if [[ $(id -u) = 0 ]]; then
+        [[ -n "$verbose" ]] && zsh_verbose "fetching the file from $p10kroot to $destination"
+        curl -sL "$p10kroot" -o "$HOME/.p10k.zsh" --retry 3 --retry-delay 3
     else
-        zsh_mdebug "copying .p10k.zsh from $filelocation to $destination"
-        [[ -n $verbose ]] && zsh_verbose "copying .p10k.zsh from $filelocation to $destination"
+        [[ -n "$verbose" ]] && zsh_verbose "fetching the file from $p10kflo to $destination"
+        curl -sL "$p10kflo" -o "$HOME/.p10k.zsh" --retry 3 --retry-delay 3
     fi
 
     zsh_mdebug "Exiting ${FUNCNAME[0]} function"
@@ -423,7 +424,7 @@ EOF
     [[ -n $verbose ]] && zsh_verbose "Starting $(basename $0) ${FUNCNAME[0]}"
 
     eval create_zshrc_file "$quiet" "$verbose" "$override" "$template"
-    eval copy_p10k "$quiet" "$verbose"
+    eval get_p10k "$quiet" "$verbose"
     eval change_shell_to_zsh "$quiet" "$verbose"
 
     [[ -n $verbose ]] && zsh_verbose "Ending $(basename $0) ${FUNCNAME[0]}"
@@ -434,7 +435,7 @@ EOF
 reset() {
     rm -rf "$HOME/.config/antigen" "$HOME/.antigen" "$HOME/.cache/p10k*" "$HOME/.cache/gitstatus"
     chsh -s /bin/bash
-    rm -f "$HOME/.p10k.zsh"
+    rm -f "$HOME/.p10k.zsh" "$HOME/.zshrc"
     if ! grep -q /bin/zsh /etc/passwd; then
         sudo apt-get remove zsh -y &>/dev/null
         sudo apt-get autoremove -y &>/dev/null
@@ -510,7 +511,7 @@ version() {
     echo "Zsh-config $version"
 }
 
-usage(){
+usage() {
     cat <<EOF
 Usage: zsh-config <command> [args]
   init         Initialize zsh-config to prepare for configuration.
@@ -555,12 +556,14 @@ main() {
         ;;
     help)
         help
+        exit 0
         ;;
     full)
         full $args
         ;;
     version)
         version
+        exit 0
         ;;
     '')
         zsh_error "Please enter a command"
