@@ -529,37 +529,33 @@ main() {
     zsh_mdebug "Enter in ${FUNCNAME[0]} function"
     zsh_debug 'Input args($@)' $@
 
-    local args=''
-    debug=0
+    #Active debug mode
+    echo "$@" | grep -qwe '--debug' && debug=1
+    local args=$(echo "$@" |sed -re s/[[:space:]]?--debug//g)
+    set $args
 
-    for arg in $@; do
-        if echo "$arg" | grep -qe '--debug'; then
-            debug=1
-        elif [[ -z $command ]]; then
-            command="$arg"
-        else
-            args="$args $arg"
-        fi
-    done
+    #Get command
+    command="$1";shift
+
     zsh_debug "Command" $command
-    zsh_debug "Command args" "'$args'"
+    zsh_debug "Command args" "'$@'"
 
     case "$command" in
     init)
-        init $args
+        init $@
         ;;
     apply)
-        apply $args
+        apply $@
         ;;
     reset)
-        reset $args
+        reset $@
         ;;
     help)
         help
         exit 0
         ;;
     full)
-        full $args
+        full $@
         ;;
     version)
         version
