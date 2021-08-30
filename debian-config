@@ -1,0 +1,138 @@
+#!/bin/bash
+
+#============================================
+#=============Utils Functions================
+#============================================
+
+#Usage: dbc_error <message>
+#This function is used to print error to stderr
+dbc_error() {
+    echo -e "\033[31m$(basename $0): $1\033[0m" >&2
+    return 1
+}
+#Usage: dbc_debug <message> <variable>
+#This function is used to print message and variable in debug mode
+dbc_debug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1 => ${@:2}\033[0m" >&5
+    return 0
+}
+#Usage: dbc_mdebug <message>
+#This function is used to print message in debug mode
+dbc_mdebug() {
+    [[ $debug -eq 1 ]] && echo -e "\033[33m${FUNCNAME[1]}: $1\033[0m" >&5
+    return 0
+}
+#Usage: dbc_verbose <message>
+#This function is used to print message when verbose mode is enabled
+dbc_verbose() {
+    [[ $verbose -eq 1 ]] && echo -e "\033[35m$@\033[0m" >&4
+    return 0
+}
+
+func_template() {
+    dbc_mdebug "Enter in ${FUNCNAME[0]} function"
+    dbc_debug 'Input args($@)' $@
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+
+        esac
+        shift
+    done
+
+    dbc_mdebug "Exiting ${FUNCNAME[0]} function"
+}
+
+#============================================
+#=================Functions==================
+#============================================
+
+check_sudo() {
+    if [[ $(id -u) -ne 0 ]]; then
+        dbc_error 'You must have administrator rights to run this script!'
+        return 1
+    fi
+}
+
+update_packages() {
+    echo "Starting the package update..."
+
+    sudo apt-get update -y
+    sudo apt-get upgrade -y
+    sudo apt-get dist-upgrade -y
+    sudo apt-get autoremove -y
+
+    echo "Packages updated !"
+}
+
+#Usage: install_packages_from_file [-q|--quiet] file
+install_packages_from_file() {
+    local packagesfile="${@: -1}"
+    local quiet=''
+    while [[ "$#" -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet='qq'
+            ;;
+        esac
+        shift
+    done
+
+    if [[ -r "$packagesfile" ]]; then
+        [[ -z "$quiet" ]] && echo "Starting the installation of packages from $packagesfile"
+        sudo xargs -a "$packagesfile" apt-get install "-yqq"
+        [[ -z "$quiet" ]] && echo "Package installation complete from $packagesfile"
+    else
+        [[ -z "$quiet" ]] && error "The packages file \"$packagesfile\" is missing!"
+    fi
+}
+
+
+#============================================
+#===================Main=====================
+#============================================
+
+quiet=0
+verbose=0
+debug=0
+
+main() {
+    #Declare descriptor 4 to /dev/stdout for verbose 
+    exec 4>/dev/stdout
+    #Declare descriptor 5 to /dev/stdout for debug 
+    exec 5>/dev/stdout
+
+    #Active debug mode
+    echo "$*" | grep -qwe '--debug' && debug=1
+    local args=$(echo "$@" |sed -re s/[[:space:]]?--debug//g)
+    set -- $args
+
+    dbc_mdebug "Enter in ${FUNCNAME[0]} function"
+    dbc_debug 'Input args($@)' $@
+
+
+    while [[ $# -ne 0 ]]; do
+        case "$1" in
+        -q | --quiet)
+            quiet=1
+            dbc_mdebug "Quiet mode enabled"
+            ;;
+        -v | --verbose)
+            verbose=1
+            dbc_mdebug "Verbose mode enabled"
+            ;;
+        *) ;;
+        esac
+        shift
+    done
+
+    if [[ $quiet -eq 1 ]];then exec 1>/dev/null;fi
+    dbc_verbose "Test verbose"
+
+    check_sudo || exit 1
+    update_packages
+    dbc_mdebug "Exiting ${FUNCNAME[0]} function"
+    return 0
+}
+
+main $*
