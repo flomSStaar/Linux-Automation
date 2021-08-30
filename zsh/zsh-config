@@ -76,11 +76,13 @@ fetch_antigen() {
     local destfile="$destpath/antigen.zsh"
 
     if [[ ! -e "$destfile" ]]; then
-        (mkdir -p "$destpath" && [[ -n $verbose ]] && zsh_verbose "Created directory '$destpath'") 2>/dev/null
+        mkdir -p "$destpath" 2>/dev/null
         if [[ $? -ne 0 ]]; then
             zsh_error "can't create directory $destpath"
             zsh_mdebug "Exiting ${FUNCNAME[0]} function"
             return 1
+        else
+            [[ -n $verbose ]] && zsh_verbose "Created directory '$destpath'"
         fi
 
         zsh_mdebug "Fetching antigen file to '$destfile'"
@@ -196,11 +198,11 @@ create_zshrc_file() {
         if [[ ! -e "$destination" ]]; then
             zsh_mdebug "creating file ~/.zshrc with default configuration"
             [[ -n $verbose ]] && zsh_verbose "creating file '~/.zshrc' with default configuration"
-            echo "$zshrctemplate" >~/.zshrc
+            echo "$zshrctemplate" >"$destination"
         elif [[ -e "$destination" ]] && [[ $override -eq 1 ]]; then
             zsh_mdebug "overriding file ~/.zshrc with default configuration"
             [[ -n $verbose ]] && zsh_verbose "overriding file '~/.zshrc' with default configuration"
-            echo "$zshrctemplate" >~/.zshrc
+            echo "$zshrctemplate" >"$destination"
         else
             zsh_mdebug "the file '$destination' exists but cannot be replaced because of the 'override' option"
         fi
