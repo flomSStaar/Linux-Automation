@@ -76,8 +76,7 @@ fetch_antigen() {
     local destfile="$destpath/antigen.zsh"
 
     if [[ ! -e "$destfile" ]]; then
-        mkdir -p "$destpath" 2>/dev/null
-        if [[ $? -ne 0 ]]; then
+        if ! mkdir -p "$destpath" 2>/dev/null; then
             zsh_error "can't create directory $destpath"
             zsh_mdebug "Exiting ${FUNCNAME[0]} function"
             return 1
@@ -114,31 +113,31 @@ create_zshrc_file() {
     local quiet=0
     local override=0
     local zshrctemplate='
-    if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-    fi
+fi
 
-    source ~/.config/antigen/antigen.zsh
-    antigen use oh-my-zsh
-    antigen bundle zsh-users/zsh-autosuggestions
-    antigen bundle zsh-users/zsh-syntax-highlighting
-    antigen bundle git
-    antigen bundle heroku
-    antigen bundle pip
-    antigen bundle lein
-    antigen bundle command-not-found
-    antigen theme romkatv/powerlevel10k
-    antigen apply
+source ~/.config/antigen/antigen.zsh
+antigen use oh-my-zsh
+antigen bundle zsh-users/zsh-autosuggestions
+antigen bundle zsh-users/zsh-syntax-highlighting
+antigen bundle git
+antigen bundle heroku
+antigen bundle pip
+antigen bundle lein
+antigen bundle command-not-found
+antigen theme romkatv/powerlevel10k
+antigen apply
+P9K_SSH=1
 
-    alias cls=clear
-    alias exit="exit 0"
-    alias goraspi="ssh flo@raspi -p 1907"
+alias cls=clear
+alias exit="exit 0"
 
-    PATH="$PATH:."
+PATH="$PATH:."
 
-    unset HISTFILE
+unset HISTFILE
 
-    [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 '
     local destination="$HOME/.zshrc"
     local verbose=''
@@ -239,6 +238,7 @@ get_p10k() {
     done
 
     #Choose the file based on user
+    if [[ -e $destination ]]; then [[ -n "$verbose" ]] && zsh_verbose "The file '$destination' already exists"; return 0; fi
     if [[ $(id -u) = 0 ]]; then
         [[ -n "$verbose" ]] && zsh_verbose "fetching the file from $p10kroot to $destination"
         curl -sL "$p10kroot" -o "$HOME/.p10k.zsh" --retry 3 --retry-delay 3
