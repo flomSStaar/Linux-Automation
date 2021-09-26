@@ -67,49 +67,78 @@ update_packages() {
 
 #Usage: install_packages_from_file [-q|--quiet] file
 install_packages_from_file() {
-    local packagesfile="${@: -1}"
-    local quiet=''
-    while [[ "$#" -ne 0 ]]; do
-        case "$1" in
-        -q | --quiet)
-            quiet='qq'
-            ;;
-        esac
-        shift
-    done
+    packagesfile="$1"
 
     if [[ -r "$packagesfile" ]]; then
-        [[ -z "$quiet" ]] && echo "Starting the installation of packages from $packagesfile"
-        sudo xargs -a "$packagesfile" apt-get install "-yqq"
-        [[ -z "$quiet" ]] && echo "Package installation complete from $packagesfile"
+        echo "Starting the installation of packages from $packagesfile"
+        xargs -a "$packagesfile" apt-get install "-yqq"
+        echo "Package installation complete from $packagesfile"
     else
-        [[ -z "$quiet" ]] && error "The packages file \"$packagesfile\" is missing!"
+        dbc_error "The packages file \"$packagesfile\" is missing!"
     fi
 }
 
+parse_config_file() {
+    config_file="$1"
+    for line in $(cat "$1"); do
+        case "$line" in
+        DBC_HOSTNAME=*)
+            newhost=$(echo "$line" | cut -d '=' -f2)
+            if [[ -n $newhost ]]; then
+                previoushost=$(hostname)
+                mv /etc/hostname /etc/hostname.old
+                echo "$newhost" >/etc/hostname
+                hostname -F /etc/hostname
+                if [[ $(cat /etc/hostname) = $newhost ]]; then
+                    sed -rie "s/$previoushost/$newhost/g" /etc/hosts
+                fi
+                # hostname $newhost
+            fi
+            ;;
+        DBC_HOSTS=*)
+            line=$(echo "$line" | cut -d '=' -f2)
+            echo >> /etc/hosts
+            echo "Personal hosts:" >>/etc/hosts
+            for var in $(echo "$line" | tr ':' '\n'); do
+                IP=$(echo "$var" | cut -d ',' -f1)
+                IPNAME=$(echo "$var" | cut -d ',' -f2)
+                echo -e "$IP\t$IPNAME" >/etc/hosts
+            done
+            ;;
+
+        esac
+        # if echo "$line" | grep -q ".=."; then
+        #     eval "$line"
+        # fi
+    done
+}
 
 #============================================
 #===================Main=====================
 #============================================
+
+usage() {
+    echo "usage: $(basename $0) [-v|--verbose] [-q|--quiet] -f config_file"
+    exit 2
+}
 
 quiet=0
 verbose=0
 debug=0
 
 main() {
-    #Declare descriptor 4 to /dev/stdout for verbose 
+    #Declare descriptor 4 to /dev/stdout for verbose
     exec 4>/dev/stdout
-    #Declare descriptor 5 to /dev/stdout for debug 
+    #Declare descriptor 5 to /dev/stdout for debug
     exec 5>/dev/stdout
 
     #Active debug mode
     echo "$*" | grep -qwe '--debug' && debug=1
-    local args=$(echo "$@" |sed -re s/[[:space:]]?--debug//g)
+    local args=$(echo "$@" | sed -re s/[[:space:]]?--debug//g)
     set -- $args
 
     dbc_mdebug "Enter in ${FUNCNAME[0]} function"
     dbc_debug 'Input args($@)' $@
-
 
     while [[ $# -ne 0 ]]; do
         case "$1" in
@@ -121,15 +150,32 @@ main() {
             verbose=1
             dbc_mdebug "Verbose mode enabled"
             ;;
-        *) ;;
+        -f | --file)
+            if [[ -n "$2" && ! "$2" =~ ^- ]]; then
+                file="$2"
+                shift
+            else
+                dbc_error "missing parameter : file needed"
+                usage
+            fi
+            ;;
+        *)
+            usage
+            ;;
         esac
         shift
     done
 
-    if [[ $quiet -eq 1 ]];then exec 1>/dev/null;fi
-    dbc_verbose "Test verbose"
+    if [[ -z $file ]]; then
+        dbc_error "missing parameter : file needed"
+        usage
+    fi
+    if [[ $quiet -eq 1 ]]; then exec 1>/dev/null; fi
 
     check_sudo || exit 1
+    parse_config_file $file
+    return 0
+
     update_packages
     dbc_mdebug "Exiting ${FUNCNAME[0]} function"
     return 0

@@ -1,6 +1,6 @@
 # Linux-Automation
 
-- ## common.sh
+- ## debian-config
 This script is under development
 
 - ## zsh-config
