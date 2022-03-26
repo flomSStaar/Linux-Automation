@@ -7,7 +7,7 @@ This script is under development
 This script allows you to configure your zsh shell.
 ### Installation
 ```
-curl -Ls https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/zsh-config?token=ATJZ5CKVHBFKJR75IJKEVOLBGP3N6 -o zsh-config
+curl -Ls https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/zsh-config -o zsh-config
 chmod 755 zsh-config
 ```
 
