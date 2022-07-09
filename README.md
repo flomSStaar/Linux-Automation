@@ -33,7 +33,7 @@ apt-get install -y git zsh curl apt-transport-https
 - Download the `.zshrc` file
 
 ```
-curl -sLO https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/.zshrc
+curl -sL -o ~/.zshrc https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/.zshrc
 ```
 
 - Configure zsh as default shell
@@ -53,6 +53,21 @@ chsh -s /usr/bin/zsh
 - In `~/.perso/.zshrc` file
   
   It is recommended to add other configurations in `~/.perso/.zshrc` file to avoid re-configuring your .zshrc file when updating this script.
+
+- Adding antigen bundles:
+  
+  In `~/.perso/.zshrc`, you can add antigen bundle/theme with the following line
+
+  ```
+  antigen bundle <git repository> <path to bundle file>
+  antigen theme <git repository> <path to theme file>
+  ```
+
+  Example:
+
+  ```
+  antigen theme flomSStaar/Linux-Automation zsh/flomSStaar
+  ```
 
 # Contributing
 
