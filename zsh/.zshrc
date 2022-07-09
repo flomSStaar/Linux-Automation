@@ -15,7 +15,7 @@ if [[ -r "$ANTIGEN_PATH" ]]; then
         antigen bundle zsh-users/zsh-syntax-highlighting
         antigen bundle zsh-users/zsh-history-substring-search
 
-        antigen bundle /usr/local/share/antigen/flomSStaar.zsh-theme
+        antigen theme flomSStaar/Linux-Automation zsh/flomSStaar
 
         antigen apply
 else

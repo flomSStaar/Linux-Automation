@@ -1,6 +1,7 @@
 ###
 # Author: Florent MARQUES
-# 
+# Created: 2022/07/09 
+#
 # Inspired by: https://github.com/ohmyzsh/ohmyzsh/blob/master/themes/gentoo.zsh-theme
 ###
 
