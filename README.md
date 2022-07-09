@@ -45,6 +45,8 @@ chsh -s /usr/bin/zsh
 
 - Restart your terminal
 
+> You may need to restart your session if the changes did not apply
+
 ## Configuration
 
 - In `.zshrc` file
