@@ -1,23 +1,68 @@
 # Linux-Automation
+Linux Automation is a repository that brings together all the tools I created to set up my development environment.
 
-- ## common.sh
+- [common.sh](#commonsh)
+- [.zshrc](#zshrc)
+
+# common.sh
 This script is under development
 
-- ## zsh-config
-This script allows you to configure your zsh shell.
-### Installation
-```
-curl -Ls https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/zsh-config -o zsh-config
-chmod 755 zsh-config
+# .zshrc
+This script allows you to automatically configure `zsh` and add the most convenient plugins to work more efficiently.
+
+## Introduction
+Two themes are available. Themes change automatically if you are logged in as root.
+- User theme
+
+![user-theme](images/user-theme.png)
+
+- Root theme
+
+![root-theme](images/root_theme.png)
+
+## Installation
+
+- Install all the necessary tools (zsh, curl):
+
+> You need privileges to install necessary tools
+
+```bash
+apt-get install -y git zsh curl apt-transport-https
 ```
 
-### Usage
+- Download the `.zshrc` file
+
 ```
-Usage: zsh-config <command> [args]
-  init         Initialize zsh-config to prepare for configuration.
-  apply        Apply configuration to the current user.
-  full         Full configuration of zsh-config.
-  reset        Reset settings as before running zsh-config.
-  help         Display this information.
-  version      Display zsh-config version.
+curl -sLO https://raw.githubusercontent.com/flomSStaar/Linux-Automation/master/zsh/.zshrc
 ```
+
+- Configure zsh as default shell
+
+```bash
+chsh -s /usr/bin/zsh
+```
+
+- Restart your terminal
+
+## Configuration
+
+- In `.zshrc` file
+
+  You can directly add other configurations like aliases or other bundles but it is recommended to create a local .zshrc file in `~/.perso/.zshrc` to avoid re-configuring your .zshrc file when updating this script.
+
+- In `~/.perso/.zshrc` file
+  
+  It is recommended to add other configurations in `~/.perso/.zshrc` file to avoid re-configuring your .zshrc file when updating this script.
+
+# Contributing
+
+You can participate in this project by creating a pull request. I will study the proposal to see if it is relevant to the project. 
+
+# Bugs and issues
+
+You can report bugs and issues on Github [here](https://github.com/flomSStaar/Linux-Automation/issues)
+
+
+# Contributors
+
+- [Florent MARQUES](https://github.com/flomSStaar) - Creator 

@@ -1,32 +1,35 @@
-ANTIGEN_PATH="/usr/local/share/antigen"
+ANTIGEN_PATH="$HOME/.antigen"
 
-# Config antigen
-if [[ -r "$ANTIGEN_PATH/antigen.zsh" ]]; then
-        ADOTDIR="$ANTIGEN_PATH/resources"
-        if [[ ! -e "$ADOTDIR" ]]; then
-                mkdir -p "$ADOTDIR"
-        fi
-        ANTIGEN_CACHE="$ADOTDIR/init.zsh"
-        ANTIGEN_COMPDUMP="$ADOTDIR/.zcompdump"
-        ANTIGEN_BUNDLE="$ADOTDIR/bundles"
-        ANTIGEN_DEBUG_LOG=/dev/null
+if [[ ! -e "$ANTIGEN_PATH" ]]; then
+    mkdir -p "$ANTIGEN_PATH"
+fi
 
-        source "$ANTIGEN_PATH/antigen.zsh"
+if [[ ! -e "$ANTIGEN_PATH/antigen.zsh" ]]; then
+    curl -L git.io/antigen > "$ANTIGEN_PATH/antigen.zsh"
+fi
 
-        antigen use oh-my-zsh
+source "$ANTIGEN_PATH/antigen.zsh"
 
-        antigen bundle git
-        antigen bundle pip
-        antigen bundle command-not-found
+antigen use oh-my-zsh
 
-        antigen bundle zsh-users/zsh-completions
-        antigen bundle zsh-users/zsh-autosuggestions
-        antigen bundle zsh-users/zsh-syntax-highlighting
-        antigen bundle zsh-users/zsh-history-substring-search
+antigen bundle git
+antigen bundle pip
+antigen bundle command-not-found
 
-        antigen theme flomSStaar/Linux-Automation zsh/flomSStaar
+antigen bundle zsh-users/zsh-completions
+antigen bundle zsh-users/zsh-autosuggestions
+antigen bundle zsh-users/zsh-syntax-highlighting
+antigen bundle zsh-users/zsh-history-substring-search
 
-        antigen apply
-else
-        echo "Cannot load antigen"
+## You can add here more bundles
+## You can alse add bundles in ~/.perso/.zshrc
+# to avoid configuring your .zshrc file when updating this script
+
+antigen theme flomSStaar/Linux-Automation zsh/flomSStaar
+
+antigen apply
+
+# Additional configurations for zsh
+if [[ -r "$HOME/.perso/.zshrc" ]]; then
+    source "$HOME/.perso/.zshrc"
 fi
