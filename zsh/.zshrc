@@ -1,8 +1,17 @@
-ANTIGEN_PATH="/usr/local/share/antigen/antigen.zsh"
+ANTIGEN_PATH="/usr/local/share/antigen"
 
 # Config antigen
-if [[ -r "$ANTIGEN_PATH" ]]; then
-        source "$ANTIGEN_PATH"
+if [[ -r "$ANTIGEN_PATH/antigen.zsh" ]]; then
+        ADOTDIR="$ANTIGEN_PATH/resources"
+        if [[ ! -e "$ADOTDIR" ]]; then
+                mkdir -p "$ADOTDIR"
+        fi
+        ANTIGEN_CACHE="$ADOTDIR/init.zsh"
+        ANTIGEN_COMPDUMP="$ADOTDIR/.zcompdump"
+        ANTIGEN_BUNDLE="$ADOTDIR/bundles"
+        ANTIGEN_DEBUG_LOG=/dev/null
+
+        source "$ANTIGEN_PATH/antigen.zsh"
 
         antigen use oh-my-zsh
 

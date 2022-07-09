@@ -34,4 +34,10 @@ gentoo_precmd() {
 autoload -U add-zsh-hook
 add-zsh-hook precmd gentoo_precmd
 
-PROMPT='%(!.%B%F{red}.%B%F{green})%n@%m %F{blue}%(!.%1~.%~) ${vcs_info_msg_0_}%F{blue}%(!.#.$)%k%b%f '
+if [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]]; then
+  PROMPT_CONTEXT="%(!.%K{magenta}%F{white}.%K{blue}%F{white})%n@%m%f%k"
+else
+  PROMPT_CONTEXT="%(!.%B%F{red}.%B%F{green})%n@%m"
+fi
+
+PROMPT='${PROMPT_CONTEXT}:%F{blue}%~ ${vcs_info_msg_0_}%F{blue}%(!.#.$)%k%b%f '
