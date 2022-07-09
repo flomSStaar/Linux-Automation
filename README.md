@@ -9,6 +9,7 @@ This script is under development
 
 # .zshrc
 This script allows you to automatically configure `zsh` and add the most convenient plugins to work more efficiently.
+This script uses [Antigen](https://github.com/zsh-users/antigen/) as plugins manager for zsh, so you can add all compatible plugins in your `.zshrc` file.
 
 ## Introduction
 Two themes are available. Themes change automatically if you are logged in as root.
