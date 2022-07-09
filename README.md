@@ -1,5 +1,5 @@
 # Linux-Automation
-Linux Automation is a repository that brings together all the tools I created to set up my development environment.
+Linux Automation is a repository that brings together all the tools I created to set up my development environment. I share my tools with the community to improve the environment of others, and that they can submit improvements and new ideas to me. 
 
 - [common.sh](#commonsh)
 - [.zshrc](#zshrc)
@@ -72,7 +72,7 @@ chsh -s /usr/bin/zsh
 
 # Contributing
 
-You can participate in this project by creating a pull request. I will study the proposal to see if it is relevant to the project. 
+You can participate in this project by creating a [pull request](https://github.com/flomSStaar/Linux-Automation/pulls). I will study the proposal to see if it is relevant to the project. 
 
 # Bugs and issues
 
