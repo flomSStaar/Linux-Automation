@@ -12,7 +12,13 @@ if [[ ! -e "$ANTIGEN_PATH" ]]; then
 fi
 
 if [[ ! -e "$ANTIGEN_PATH/antigen.zsh" ]]; then
-    curl -L git.io/antigen > "$ANTIGEN_PATH/antigen.zsh"
+    $(curl &>/dev/null)
+    if [[ "$?" -eq 2 ]]; then
+        curl -L git.io/antigen >"$ANTIGEN_PATH/antigen.zsh"
+    else
+        echo "cannot install antigen because curl is not install"
+        exit 1
+    fi
 fi
 
 source "$ANTIGEN_PATH/antigen.zsh"
